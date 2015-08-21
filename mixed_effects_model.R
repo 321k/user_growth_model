@@ -29,5 +29,5 @@ res_table <- res_table[c(1,2,5,6,7,3)]
 res_table$'Expected new users' <- round(res_table$'Realized WNU last week' * (1+res_table$'Expected growth'), 0)
 res_table$'Over/under' <- round(res_table$'Realized WNU this week' - res_table$'Expected new users', 0)
 
-write.csv(res_table, 'Tables/results.csv', row.names=F)
+#write.csv(res_table, 'Tables/results.csv', row.names=F)
 
