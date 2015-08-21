@@ -1,4 +1,3 @@
-print('Data munging')
 setwd('/Users/transferwise/user_growth_model')
 
 # Add libraries
@@ -31,11 +30,12 @@ db <- read.csv('weekly user growth by corridor.csv', sep='\t', na.strings='NULL'
 #db$first_ccy_pair <- as.character(db$first_ccy_pair)
 db$start_date <- as.Date(as.character(db$date), '%Y-%m-%d')
 db$date <- db$start_date + 5
-db$new_users <- as.character(db$new_users)
+db$new_users <- as.numeric(as.character(db$new_users))
 
 db$month <- as.numeric(substr(as.character(db$date), 6, 7)) #   Add month
 db$yearmonth <- as.yearmon(db$date) #   Add year and month
 db$year <- as.numeric(substr(as.character(db$date), 1, 4)) #   Add year
+db$year <- as.numeric(as.character(db$nps_score))
 db_pair <- unique(db$first_ccy_pair)
 
 # Calculate % change in user numbers
@@ -189,7 +189,3 @@ cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
 ggplot(db[which(db$start_date>=start_date),], aes(first_ccy_pair, new_users, group=week, fill=week))+geom_bar(stat='identity', position='dodge')+
   scale_fill_brewer(palette="Spectral")
 ggsave(filename=paste('plots/new_users.png', sep=''), width=10, height=5)
-
-names(db)
-
-?geom_bar
