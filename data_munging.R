@@ -1,5 +1,5 @@
 print('Data munging')
-setwd('/Users/transferwise/Google\ Drive/Research/User\ growth\ model')
+setwd('/Users/transferwise/user_growth_model')
 
 # Add libraries
 print('Load libraries')
