@@ -7,8 +7,12 @@ library(nlme)
 setwd('/Users/transferwise/user_growth_model')
 db <- read.csv('Tables/ready_data.csv')
 db$date <- as.Date(db$date, '%Y-%m-%d')
-db <- db[-c(1:3)]
-db <- db[which(db$date >= '2014-01-01'),]
+db$start_date <- as.Date(db$start_date)
+
+# Remove USD > INR
+#db <- db[-which(db$first_ccy_pair == 'USD > INR'),]
+
+db <- db[which(db$date >= '2015-01-01'),]
 db$first_ccy_pair <- as.character(db$first_ccy_pair)
 
 fit <- lmer(d_new_users~d_new_users_1+d_new_users_2+end_of_month+(1+d_xrate|first_ccy_pair), data=db)
@@ -18,15 +22,23 @@ db$lme4_fitted <- fitted(fit)
 
 write.csv(db, 'Tables/random effects model.csv')
 
+include <- c('start_date', 'first_ccy_pair', 'new_users', 'd_new_users', 'd_xrate', 'lme4_fitted')
 date <- unique(db$start_date)
 date <- date[order(date)]
 n <- length(date)
-res_table <- db[which(db$start_date == date[n]),c(1,2,3,7,11,26)]
-res_table <- cbind(res_table, db[which(db$start_date == date[n-1]),3])
-names(res_table) <- c('Date', 'Corridor', 'Realized WNU this week', 'Realized growth', 'Exchange rate', 'Expected growth', 'Realized WNU last week')
-res_table <- res_table[c(1,2,5,6,7,3)]
+week_steps=3
+this_week = date[n-week_steps]
+previous_week = date[n-1-week_steps]
+
+res_table <- db[include]
+res_table <- res_table[which(res_table$start_date == this_week),]
+prev_WNU <- db[which(db$start_date == previous_week),c('first_ccy_pair', 'new_users')]
+names(prev_WNU) <- c('first_ccy_pair', 'Realized WNU last week')
+res_table <- merge(res_table, prev_WNU)
+names(res_table) <- c('Corridor', 'Date', 'Realized WNU this week', 'Realized growth', 'Exchange rate', 'Expected growth', 'Realized WNU last week')
+final_order <- c('Date', 'Corridor', 'Exchange rate', 'Realized growth', 'Expected growth', 'Realized WNU last week', 'Realized WNU this week')
+res_table <- res_table[final_order]
 res_table$'Expected new users' <- round(res_table$'Realized WNU last week' * (1+res_table$'Expected growth'), 0)
 res_table$'Over/under' <- round(res_table$'Realized WNU this week' - res_table$'Expected new users', 0)
 
-write.csv(res_table, 'Tables/results.csv', row.names=F)
-
+write.csv(res_table, paste('Tables/results ', this_week, '.csv', sep=""), row.names=F)
