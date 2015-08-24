@@ -48,13 +48,13 @@ write.csv(res_table, paste('Tables/results ', this_week, '.csv', sep=""), row.na
 ###############
 # Plot
 corridor_rows <- which(db$first_ccy_pair == 'USD > INR')
-corridor_rows
 plot_data <- db[corridor_rows,]
-names(db)
-vars <- c('d_xrate', 'd_new_users', 'd_new_users_1', 'd_new_users_2', 'end_of_month')
 plot(plot_data$d_xrate, plot_data$d_new_users)
-fit <- lm(d_new_users~d_xrate+d_new_users_1+end_of_month, data=db)
+fit <- lm(d_new_users~d_xrate+d_new_users_1+end_of_month, data=plot_data)
+length(fit$residuals)
+
 summary(fit)
 par(mfrow=c(1,1))
+plot(fit$fitted, plot_data$d_new_users)
 plot(d_xrate~date, data=plot_data, type='l')
 plot(d_new_users~date, data=plot_data, type='l')
