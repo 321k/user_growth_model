@@ -4,6 +4,8 @@
 
 library(lme4)
 library(nlme)
+library(lmerTest)
+
 setwd('/Users/transferwise/user_growth_model')
 db <- read.csv('Tables/ready_data.csv')
 db$date <- as.Date(db$date, '%Y-%m-%d')
@@ -42,3 +44,17 @@ res_table$'Expected new users' <- round(res_table$'Realized WNU last week' * (1+
 res_table$'Over/under' <- round(res_table$'Realized WNU this week' - res_table$'Expected new users', 0)
 
 write.csv(res_table, paste('Tables/results ', this_week, '.csv', sep=""), row.names=F)
+
+###############
+# Plot
+corridor_rows <- which(db$first_ccy_pair == 'USD > INR')
+corridor_rows
+plot_data <- db[corridor_rows,]
+names(db)
+vars <- c('d_xrate', 'd_new_users', 'd_new_users_1', 'd_new_users_2', 'end_of_month')
+plot(plot_data$d_xrate, plot_data$d_new_users)
+fit <- lm(d_new_users~d_xrate+d_new_users_1+end_of_month, data=db)
+summary(fit)
+par(mfrow=c(1,1))
+plot(d_xrate~date, data=plot_data, type='l')
+plot(d_new_users~date, data=plot_data, type='l')

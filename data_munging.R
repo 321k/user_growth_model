@@ -145,7 +145,8 @@ print('Write data')
 write.csv(db_fin, 'Tables/ready_data.csv', row.names=F)
 
 rates_table<- data.frame()
-
+png(file='xrate.png',width=1500,height=800)
+par(mfrow=c(2,4))
 for(j in 1:length(currencies$db_pair)){  
   xrate = eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
   rates_table <- cbind(rates_table, xrate)
@@ -153,9 +154,12 @@ for(j in 1:length(currencies$db_pair)){
   xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
   start_date <- as.Date(Sys.time())-60
   xrate <- xrate[which(xrate$date>=start_date),]
-  ggplot(xrate, aes(date, xrate[,1]))+geom_line()+ggtitle(names(xrate)[1])+ylab(names(xrate)[1])
-  ggsave(filename=paste('plots/', names(xrate)[1], '.png', sep=''), width=5, height=2.5)
+  ?plot
+  #ggplot(xrate, aes(date, xrate[,1]))+geom_line()+ggtitle(names(xrate)[1])+ylab(names(xrate)[1])
+  plot(xrate[,2], xrate[,1], type='l', xlab='Date', ylab=names(xrate)[1], main=names(xrate)[1])
+  #ggsave(filename=paste('plots/', names(xrate)[1], '.png', sep=''), width=5, height=2.5)
 }
+dev.off()
 
 write.csv(rates_table, 'Tables/rates_table.csv')
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
