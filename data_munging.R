@@ -35,7 +35,7 @@ db$new_users <- as.numeric(as.character(db$new_users))
 db$month <- as.numeric(substr(as.character(db$date), 6, 7)) #   Add month
 db$yearmonth <- as.yearmon(db$date) #   Add year and month
 db$year <- as.numeric(substr(as.character(db$date), 1, 4)) #   Add year
-db$year <- as.numeric(as.character(db$nps_score))
+db$nps_score <- as.numeric(as.character(db$nps_score))
 db_pair <- unique(db$first_ccy_pair)
 
 # Calculate % change in user numbers
