@@ -16,8 +16,6 @@ source('multiplot.R')
 # List of currencies
 from_ccy <- c('GBP', 'EUR', 'GBP', 'EUR', 'GBP', 'GBP', 'EUR', 'USD')
 to_ccy <- c('EUR', 'GBP', 'INR', 'INR', 'HUF', 'USD', 'USD', 'INR')
-#from_ccy <- c('GBP', 'EUR', 'GBP', 'EUR', 'GBP')
-#to_ccy <- c('EUR', 'GBP', 'INR', 'INR', 'HUF')
 
 currencies <- data.frame(from_ccy, to_ccy)
 currencies$db_pair <- paste(from_ccy, to_ccy, sep=' > ')
@@ -27,7 +25,6 @@ db_pair <- paste("'", currencies$db_pair, "'", sep="", collapse = ',')
 print('Read data')
 db <- read.csv('weekly user growth by corridor.csv', sep='\t', na.strings='NULL')
 
-#db$first_ccy_pair <- as.character(db$first_ccy_pair)
 db$start_date <- as.Date(as.character(db$date), '%Y-%m-%d')
 db$end_date <- db$start_date + 6
 db$new_users <- as.numeric(as.character(db$new_users))
@@ -50,14 +47,28 @@ getFX(currencies$qm_pair, from = '2012-01-01', to = Sys.Date(), env = rates)
 
 # Add exchange rates to table
 db$xrate <- NA
-for(j in 1:length(currencies$db_pair)){  
-  corridor_rows <- which(db$first_ccy_pair == currencies$db_pair[j])
-  xrate = eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
-  xrate <- as.data.frame(xrate)
+#for(j in 1:length(currencies$db_pair)){  
+#  r <- which(db$first_ccy_pair == currencies$db_pair[j])
+#  xrate = eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
+#  xrate <- as.data.frame(xrate)
+#  names(xrate) <- 'rate'
+#  xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
+#  xrate <- merge(db[r,], xrate, all.x=T, all.y=F, by='date')
+#  db$xrate[r] <- xrate$rate
+#}
+
+for(j in 1:length(currencies$db_pair)){
+  r <- which(db$first_ccy_pair == currencies$db_pair[j])
+  xrate = as.data.frame(
+    eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
+  )
   names(xrate) <- 'rate'
   xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
-  xrate <- merge(db[corridor_rows,], xrate, all.x=T, all.y=F, by='date')
-  db$xrate[corridor_rows] <- xrate$rate
+  
+  for(i in r){
+    weekspan <- xrate[which(xrate$date>=db$start_date[i] & xrate$date<=db$end_date[i]),]
+    db$xrate[i] <- mean(weekspan$rate)
+  }
 }
 
 # Calculate other exchange rate measures
@@ -85,7 +96,6 @@ for(j in 1:length(currencies$db_pair)){
 
 # Add end of month dummy
 db$end_of_month <- 'not end'
-
 for(j in 1:length(currencies$db_pair)){  
   r <- which(db$first_ccy_pair == currencies$db_pair[j])
   n <- length(r)
