@@ -29,7 +29,7 @@ db <- read.csv('weekly user growth by corridor.csv', sep='\t', na.strings='NULL'
 
 #db$first_ccy_pair <- as.character(db$first_ccy_pair)
 db$start_date <- as.Date(as.character(db$date), '%Y-%m-%d')
-db$date <- db$start_date + 5
+db$end_date <- db$start_date + 6
 db$new_users <- as.numeric(as.character(db$new_users))
 
 db$month <- as.numeric(substr(as.character(db$date), 6, 7)) #   Add month
@@ -43,11 +43,6 @@ names(db)[ncol(db)] <- 'd_new_users'
 
 db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(new_users, type='log'))
 names(db)[ncol(db)] <- 'ln_new_users'
-
-# Calculate % change in nps score
-#db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(nps_score, type='log'))
-#names(db)[ncol(db)] <- 'ln_nps_score'
-#db$ln_nps_score[which(!is.finite(db$ln_nps_score))] <- 0
 
 # Get exchange rates
 rates <- new.env()
@@ -89,22 +84,12 @@ for(j in 1:length(currencies$db_pair)){
 }
 
 # Add end of month dummy
-db$end_of_month <- NA
+db$end_of_month <- 'not end'
 
 for(j in 1:length(currencies$db_pair)){  
-  corridor_rows <- which(db$first_ccy_pair == currencies$db_pair[j])
-  for(i in 1:(length(corridor_rows))){
-    this_month <- db$yearmonth[corridor_rows][i]
-    next_month <- as.yearmon(db$date[corridor_rows][i]+7)
-    if(is.na(next_month) | is.na(this_month)){
-      next()
-    }
-    if(this_month < next_month){
-      db$end_of_month[corridor_rows][i] = 'end of month'
-    } else {
-      db$end_of_month[corridor_rows][i] = 'not end'
-    } 
-  }
+  r <- which(db$first_ccy_pair == currencies$db_pair[j])
+  n <- length(r)
+  db$end_of_month[r][which(db$yearmon[r][-n] != db$yearmon[r][-1])] <- 'end of month'
 }
 
 # Add marketing spend
@@ -119,7 +104,6 @@ db <- db[order(db$date),]
 # Calcualte lagged values
 db$d_new_users_1 <- NA
 db$d_new_users_2 <- NA
-#db$ln_nps_score_1 <- NA
 db$d_xrate_1 <- NA
 db$d_xrate_p1 <- NA
 
@@ -128,8 +112,6 @@ for(j in 1:length(currencies$db_pair)){
   series <- db$d_new_users[corridor_rows]
   db$d_new_users_1[corridor_rows] <- c(0,series[-length(series)])
   db$d_new_users_2[corridor_rows] <- c(0,0,series[-((length(series)-1):length(series))])
-  #series <- db$ln_nps_score[corridor_rows]
-  #db$ln_nps_score_1[corridor_rows] <- c(0,series[-length(series)])
   series <- db$d_xrate[corridor_rows]
   db$d_xrate_1[corridor_rows] <- c(0,series[-length(series)])
   db$d_xrate_p1[corridor_rows] <- c(series[-1], 0)

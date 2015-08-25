@@ -10,12 +10,8 @@ setwd('/Users/transferwise/user_growth_model')
 db <- read.csv('Tables/ready_data.csv')
 db$date <- as.Date(db$date, '%Y-%m-%d')
 db$start_date <- as.Date(db$start_date)
-
-# Remove USD > INR
-#db <- db[-which(db$first_ccy_pair == 'USD > INR'),]
-
-db <- db[which(db$date >= '2015-01-01'),]
 db$first_ccy_pair <- as.character(db$first_ccy_pair)
+db <- db[which(db$date >= '2015-01-01'),]
 
 fit <- lmer(d_new_users~d_new_users_1+d_new_users_2+end_of_month+(1+d_xrate|first_ccy_pair), data=db)
 
@@ -23,6 +19,10 @@ db$lme4_residuals <- residuals(fit)
 db$lme4_fitted <- fitted(fit)
 
 write.csv(db, 'Tables/random effects model.csv')
+
+##################
+# Table with results
+##################
 
 include <- c('start_date', 'first_ccy_pair', 'new_users', 'd_new_users', 'd_xrate', 'lme4_fitted')
 date <- unique(db$start_date)
@@ -45,8 +45,9 @@ res_table$'Over/under' <- round(res_table$'Realized WNU this week' - res_table$'
 
 write.csv(res_table, paste('Tables/results ', this_week, '.csv', sep=""), row.names=F)
 
-###############
+##################
 # Plot
+##################
 corridor_rows <- which(db$first_ccy_pair == 'USD > INR')
 plot_data <- db[corridor_rows,]
 plot(plot_data$d_xrate, plot_data$d_new_users)
@@ -54,7 +55,8 @@ fit <- lm(d_new_users~d_xrate+d_new_users_1+end_of_month, data=plot_data)
 length(fit$residuals)
 
 summary(fit)
-par(mfrow=c(1,1))
 plot(fit$fitted, plot_data$d_new_users)
+par(mfrow=c(2,1))
 plot(d_xrate~date, data=plot_data, type='l')
 plot(d_new_users~date, data=plot_data, type='l')
+par(mfrow=c(1,1))

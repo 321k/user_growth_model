@@ -17,10 +17,11 @@ for(i in 1:nrow(db)){
   db$avg_rate[i] <- mean(weekspan$'GBP.INR')
 }
 
+n <- nrow(db)
 db$end_of_month <- 0
 db$end_of_month[which(db$yearmon[-n] != db$yearmon[-1])] <- 1
 
-n <- nrow(db)
+
 db$d_avg_rate <- c(NA, db$avg_rate[-1]/db$avg_rate[-n]-1)
 db$d_WNU_GBPINR <- c(NA, db$WNU_GBPINR[-1]/db$WNU_GBPINR[-n]-1)
 db$d_WNU <- c(NA, db$WNU[-1]/db$WNU[-n]-1)

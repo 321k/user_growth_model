@@ -13,7 +13,8 @@ fit <- lm(d_WNU_GBPINR ~ d_WNU+d_avg_rate+lag1_d_WNU_GBPINR+lag1_d_WNU+end_of_mo
 summary(fit)
 db$fitted <- fit$fitted
 plot(db$d_WNU_GBPINR, db$d_avg_rate)
-
+hist(fit$residuals)
+jarque.bera.test(fit$residuals)
 # VAR model
 variables <- c('d_WNU', 'd_WNU_GBPINR', 'd_avg_rate')
 fit1 <- VAR(db[variables], p=1)
