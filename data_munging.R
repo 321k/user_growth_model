@@ -25,6 +25,7 @@ db_pair <- paste("'", currencies$db_pair, "'", sep="", collapse = ',')
 print('Read data')
 db <- read.csv('weekly user growth by corridor.csv', sep='\t', na.strings='NULL')
 
+db$date <- as.Date(as.character(db$date), '%Y-%m-%d')
 db$start_date <- as.Date(as.character(db$date), '%Y-%m-%d')
 db$end_date <- db$start_date + 6
 db$new_users <- as.numeric(as.character(db$new_users))
@@ -47,29 +48,29 @@ getFX(currencies$qm_pair, from = '2012-01-01', to = Sys.Date(), env = rates)
 
 # Add exchange rates to table
 db$xrate <- NA
-#for(j in 1:length(currencies$db_pair)){  
-#  r <- which(db$first_ccy_pair == currencies$db_pair[j])
-#  xrate = eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
-#  xrate <- as.data.frame(xrate)
-#  names(xrate) <- 'rate'
-#  xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
-#  xrate <- merge(db[r,], xrate, all.x=T, all.y=F, by='date')
-#  db$xrate[r] <- xrate$rate
-#}
-
-for(j in 1:length(currencies$db_pair)){
+for(j in 1:length(currencies$db_pair)){  
   r <- which(db$first_ccy_pair == currencies$db_pair[j])
-  xrate = as.data.frame(
-    eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
-  )
+  xrate = eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
+  xrate <- as.data.frame(xrate)
   names(xrate) <- 'rate'
   xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
-  
-  for(i in r){
-    weekspan <- xrate[which(xrate$date>=db$start_date[i] & xrate$date<=db$end_date[i]),]
-    db$xrate[i] <- mean(weekspan$rate)
-  }
+  xrate <- merge(db[r,], xrate, all.x=T, all.y=F, by='date')
+  db$xrate[r] <- xrate$rate
 }
+
+#for(j in 1:length(currencies$db_pair)){
+#  r <- which(db$first_ccy_pair == currencies$db_pair[j])
+#  xrate = as.data.frame(
+#    eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
+#  )
+#  names(xrate) <- 'rate'
+#  xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
+#  
+#  for(i in r){
+#    weekspan <- xrate[which(xrate$date>=db$start_date[i] & xrate$date<=db$end_date[i]),]
+#    db$xrate[i] <- mean(weekspan$rate)
+#  }
+#}
 
 # Calculate other exchange rate measures
 db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(xrate, type='arithmetic'))
@@ -112,19 +113,18 @@ db <- merge(db, marketing_spend, by = c('month', 'year'), all.x=T)
 db <- db[order(db$date),]
 
 # Calcualte lagged values
+db$new_users_1 <- NA
 db$d_new_users_1 <- NA
 db$d_new_users_2 <- NA
 db$d_xrate_1 <- NA
-db$d_xrate_p1 <- NA
 
 for(j in 1:length(currencies$db_pair)){  
-  corridor_rows <- which(db$first_ccy_pair == currencies$db_pair[j])
-  series <- db$d_new_users[corridor_rows]
-  db$d_new_users_1[corridor_rows] <- c(0,series[-length(series)])
-  db$d_new_users_2[corridor_rows] <- c(0,0,series[-((length(series)-1):length(series))])
-  series <- db$d_xrate[corridor_rows]
-  db$d_xrate_1[corridor_rows] <- c(0,series[-length(series)])
-  db$d_xrate_p1[corridor_rows] <- c(series[-1], 0)
+  r <- which(db$first_ccy_pair == currencies$db_pair[j])
+  n <- length(db$d_new_users[r])
+  db$new_users_1[r] <- c(0,db$new_users[r][-n])
+  db$d_new_users_1[r] <- c(0,db$d_new_users[r][-n])
+  db$d_new_users_2[r] <- c(0,db$d_new_users_1[r][-n])
+  db$d_xrate_1[r] <- c(0,db$d_xrate[r][-n])
 }
 
 # Remove growth for small corridors
