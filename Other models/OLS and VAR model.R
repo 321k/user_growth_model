@@ -14,7 +14,7 @@ summary(fit)
 db$fitted <- fit$fitted
 plot(db$d_WNU_GBPINR, db$d_avg_rate)
 hist(fit$residuals)
-jarque.bera.test(fit$residuals)
+jarque.bera.test(fit$residual)
 # VAR model
 variables <- c('d_WNU', 'd_WNU_GBPINR', 'd_avg_rate')
 fit1 <- VAR(db[variables], p=1)

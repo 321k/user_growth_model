@@ -1,3 +1,4 @@
+library(quantmod)
 setwd('/Users/transferwise/user_growth_model/Other models')
 
 db <- read.csv('weekly user growth total.csv', sep=',', na.strings='NA')
@@ -32,3 +33,4 @@ db$lag2_d_WNU <- c(NA, db$lag1_d_WNU[-n])
 
 
 write.csv(db, "ready_data.csv")
+

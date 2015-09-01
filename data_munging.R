@@ -16,11 +16,11 @@ source('multiplot.R')
 # List of currencies
 from_ccy <- c('GBP', 'EUR', 'GBP', 'EUR', 'GBP', 'GBP', 'EUR', 'USD')
 to_ccy <- c('EUR', 'GBP', 'INR', 'INR', 'HUF', 'USD', 'USD', 'INR')
-
 currencies <- data.frame(from_ccy, to_ccy)
 currencies$db_pair <- paste(from_ccy, to_ccy, sep=' > ')
 currencies$qm_pair <- paste(from_ccy, to_ccy, sep='/')
 db_pair <- paste("'", currencies$db_pair, "'", sep="", collapse = ',')
+write.csv(currencies, 'currencies.csv')
 
 print('Read data')
 db <- read.csv('weekly user growth by corridor.csv', sep='\t', na.strings='NULL')
@@ -48,29 +48,33 @@ getFX(currencies$qm_pair, from = '2012-01-01', to = Sys.Date(), env = rates)
 
 # Add exchange rates to table
 db$xrate <- NA
-for(j in 1:length(currencies$db_pair)){  
-  r <- which(db$first_ccy_pair == currencies$db_pair[j])
-  xrate = eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
-  xrate <- as.data.frame(xrate)
-  names(xrate) <- 'rate'
-  xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
-  xrate <- merge(db[r,], xrate, all.x=T, all.y=F, by='date')
-  db$xrate[r] <- xrate$rate
-}
-
-#for(j in 1:length(currencies$db_pair)){
+db$max_rate <- NA
+db$min_rate <- NA
+#for(j in 1:length(currencies$db_pair)){  
 #  r <- which(db$first_ccy_pair == currencies$db_pair[j])
-#  xrate = as.data.frame(
-#    eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
-#  )
+#  xrate = eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
+#  xrate <- as.data.frame(xrate)
 #  names(xrate) <- 'rate'
 #  xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
-#  
-#  for(i in r){
-#    weekspan <- xrate[which(xrate$date>=db$start_date[i] & xrate$date<=db$end_date[i]),]
-#    db$xrate[i] <- mean(weekspan$rate)
-#  }
+#  xrate <- merge(db[r,], xrate, all.x=T, all.y=F, by='date')
+#  db$xrate[r] <- xrate$rate
 #}
+
+for(j in 1:length(currencies$db_pair)){
+  r <- which(db$first_ccy_pair == currencies$db_pair[j])
+  xrate = as.data.frame(
+    eval(parse(text=paste('rates$', currencies$from_ccy[j], currencies$to_ccy[j], sep="")))
+  )
+  names(xrate) <- 'rate'
+  xrate$date=as.Date(rownames(xrate), '%Y-%m-%d')
+  
+  for(i in r){
+    weekspan <- xrate[which(xrate$date>=db$start_date[i] & xrate$date<=db$end_date[i]),]
+    db$xrate[i] <- mean(weekspan$rate)
+    db$max_rate[i] <- max(weekspan$rate)
+    db$min_rate[i] <- min(weekspan$rate)
+  }
+}
 
 # Calculate other exchange rate measures
 db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(xrate, type='arithmetic'))
@@ -79,8 +83,17 @@ names(db)[ncol(db)] <- 'd_xrate'
 db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(xrate, type='log'))
 names(db)[ncol(db)] <- 'ln_xrate'
 
-db$high_xrate <- NA
 
+# Calculate the maximum change between two weeks
+db$max_d_xrate <- NA
+for(j in 1:length(currencies$db_pair)){  
+  r <- which(db$first_ccy_pair == currencies$db_pair[j])
+  n <- length(r)
+  db$max_d_xrate[r] <- db$max_rate[r] / c(0,db$min_rate[r][-n]) - 1
+}
+
+
+db$high_xrate <- NA
 # Flag high exchange rate
 for(j in 1:length(currencies$db_pair)){  
   corridor_rows <- which(db$first_ccy_pair == currencies$db_pair[j])
@@ -129,6 +142,8 @@ for(j in 1:length(currencies$db_pair)){
 
 # Remove growth for small corridors
 #db[which(db$first_ccy_pair=='USD > INR' & db$start_date <= '2015-01-01'),c('d_new_users', 'ln_new_users', 'd_xrate')] <- NA
+
+
 
 # Save results
 db_fin <- db[which(!is.na(db$xrate)),]
