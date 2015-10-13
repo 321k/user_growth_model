@@ -21,6 +21,9 @@ currencies$db_pair <- paste(from_ccy, to_ccy, sep=' > ')
 currencies$qm_pair <- paste(from_ccy, to_ccy, sep='/')
 db_pair <- paste("'", currencies$db_pair, "'", sep="", collapse = ',')
 write.csv(currencies, 'currencies.csv')
+currencies <- read.csv('currencies.csv', stringsAsFactors=F)
+
+
 
 print('Read data')
 db <- read.csv('weekly user growth by corridor.csv', sep='\t', na.strings='NULL')
@@ -35,12 +38,23 @@ db$yearmonth <- as.yearmon(db$date) #   Add year and month
 db$year <- as.numeric(substr(as.character(db$date), 1, 4)) #   Add year
 db_pair <- unique(db$first_ccy_pair)
 
+# Total new users
+total_new_users <- sqldf('select week, sum(new_users) as total_new_users from db group by 1')
+n <- nrow(total_new_users)
+total_new_users$d_total_new_users <- total_new_users$total_new_users / c(0,total_new_users$total_new_users[-n]) -1
+db <- merge(db, total_new_users, by='week', all.x=T, all.y=F)
+db$total_new_users_excl_own <- db$total_new_users - db$new_users
+
 # Calculate % change in user numbers
 db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(new_users, type='arithmetic'))
 names(db)[ncol(db)] <- 'd_new_users'
 
 db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(new_users, type='log'))
 names(db)[ncol(db)] <- 'ln_new_users'
+
+db <- ddply(db, "first_ccy_pair", transform,  DeltaCol = Delt(total_new_users_excl_own, type='arithmetic'))
+names(db)[ncol(db)] <- 'd_total_new_users_excl_own'
+
 
 # Get exchange rates
 rates <- new.env()
@@ -125,11 +139,15 @@ marketing_spend <- marketing_spend[-1]
 db <- merge(db, marketing_spend, by = c('month', 'year'), all.x=T)
 db <- db[order(db$date),]
 
+
+
+
 # Calcualte lagged values
 db$new_users_1 <- NA
 db$d_new_users_1 <- NA
 db$d_new_users_2 <- NA
 db$d_xrate_1 <- NA
+db$d_total_new_users_1 <- NA
 
 for(j in 1:length(currencies$db_pair)){  
   r <- which(db$first_ccy_pair == currencies$db_pair[j])
@@ -138,18 +156,11 @@ for(j in 1:length(currencies$db_pair)){
   db$d_new_users_1[r] <- c(0,db$d_new_users[r][-n])
   db$d_new_users_2[r] <- c(0,db$d_new_users_1[r][-n])
   db$d_xrate_1[r] <- c(0,db$d_xrate[r][-n])
+  db$d_total_new_users_1[r] <- c(0,db$d_xrate[r][-n])
 }
 
-# Remove growth for small corridors
-#db[which(db$first_ccy_pair=='USD > INR' & db$start_date <= '2015-01-01'),c('d_new_users', 'ln_new_users', 'd_xrate')] <- NA
 
-
-
-# Save results
-db_fin <- db[which(!is.na(db$xrate)),]
-
-print('Write data')
-write.csv(db_fin, 'Tables/ready_data.csv', row.names=F)
+write.csv(db, 'Tables/ready_data.csv', row.names=F)
 
 rates_table<- data.frame()
 png(file='xrate.png',width=1500,height=800)
